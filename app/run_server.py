@@ -71,29 +71,40 @@ def predict():
 		
 		# делаем список значений np.nan для отсутствующих фьючей в запросе.
 		if request_json:
-			features_from_json = list(set(request_json.keys()).intersection(set(features))) 
-			nan_list_len = len(request_json[features_from_json[-1]])
-			nan_list = [np.nan for i in range(nan_list_len)]
-
-		# делаем удобоваримый словарь с полученными данными для предсказания.
-		for feature in features:
-			if feature in request_json:
-				data[feature] = request_json[feature]
-			else:
-				if request_json:
-					data[feature] = nan_list
+			features_from_json = list(set(request_json.keys()).intersection(set(features)))
+			if features_from_json:
+				json_lement = request_json[features_from_json[-1]]
+				if isinstance(json_lement, list):
+					flag = 'list'
+					nan_list_len =len(request_json[features_from_json[-1]])
+					nan_list = [np.nan for i in range(nan_list_len)]
 				else:
-					data[feature] = np.nan
+					flag = 'not list'
+					nan_list = [np.nan]
 
-		# в зависимости был ли нам послан один или несколько премеров для предсказания получаем ответ, и отсылаем.
+
+		# делаем удобоваримый для dataframe словарь с полученными данными для предсказания.
+		for feature in features:
+			if request_json and flag == 'not list':
+				if feature in request_json:
+					data[feature] = [request_json[feature]]
+				else:
+					data[feature] = nan_list
+			elif request_json and flag == 'list':
+				if feature in request_json:
+					data[feature] = request_json[feature]
+				else:
+					data[feature] = nan_list
+			else:
+				data[feature] = [np.nan]
+
+
+		# делаем предсказание и отправляем ответ
 		if isinstance(data[features[-1]], list):
 			preds = model.predict(pd.DataFrame(data))
 			preds = preds.tolist()
 			data["predictions"] = preds
-		else: 
-			print(data)
-			preds = model.predict(pd.DataFrame(data, index=[0]))
-			data["predictions"] = preds.tolist()
+
 		data["success"] = True
 	return flask.jsonify(data)
 

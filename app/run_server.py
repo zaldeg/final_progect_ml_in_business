@@ -9,6 +9,32 @@
 import numpy as np
 import pandas as pd
 import dill
+from sklearn.base import BaseEstimator, TransformerMixin
+
+
+class FeatureSum(BaseEstimator, TransformerMixin):
+    '''
+    Transform class for sum of several columns
+
+    column - list of columns to sum
+
+    Return: DF with one column - sum of given columns
+    '''
+    counter = 0
+    
+    def __init__(self, column):
+        self.column = column
+        
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        FeatureSum.counter += 1
+        Xt = X[self.column].copy()
+        Xt[f'sum{FeatureSum.counter}'] = Xt.sum(axis=1, skipna=True)
+        return Xt[[f'sum{FeatureSum.counter}']]
+
 
 dill._dill._reverse_typemap['ClassType'] = type
 #import cloudpickle
@@ -42,19 +68,30 @@ def predict():
 	# ensure an image was properly uploaded to our endpoint
 	if flask.request.method == "POST":
 		request_json = flask.request.get_json()
+		
+		# делаем список значений np.nan для отсутствующих фьючей в запросе.
+		if request_json:
+			features_from_json = list(set(request_json.keys()).intersection(set(features))) 
+			nan_list_len = len(request_json[features_from_json[-1]])
+			nan_list = [np.nan for i in range(nan_list_len)]
 
+		# делаем удобоваримый словарь с полученными данными для предсказания.
 		for feature in features:
 			if feature in request_json:
 				data[feature] = request_json[feature]
 			else:
-				data[feature] = np.nan
+				if request_json:
+					data[feature] = nan_list
+				else:
+					data[feature] = np.nan
 
+		# в зависимости был ли нам послан один или несколько премеров для предсказания получаем ответ, и отсылаем.
 		if isinstance(data[features[-1]], list):
 			preds = model.predict(pd.DataFrame(data))
 			preds = preds.tolist()
 			data["predictions"] = preds
 		else: 
-			# print(data)
+			print(data)
 			preds = model.predict(pd.DataFrame(data, index=[0]))
 			data["predictions"] = preds.tolist()
 		data["success"] = True

@@ -3,6 +3,8 @@ Gender
 Class
 Customer Type
 Age
+Departure Delay in Minutes
+Arrival Delay in Minutes
 Flight Distance
 Inflight wifi service
 Departure/Arrival time convenient
@@ -18,5 +20,3 @@ Baggage handling
 Checkin service
 Inflight service
 Cleanliness
-Departure Delay in Minutes
-Arrival Delay in Minutes
